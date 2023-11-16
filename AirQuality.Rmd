@@ -1,5 +1,5 @@
 ---
-title: "NewA"
+title: "Air Pollution and Lake Breeze"
 output: html_document
 ---
 
@@ -12,7 +12,8 @@ library(lubridate)
 library(viridisLite)
 ```
 
-```{r, include=FALSE}
+```{r label='Extract, clean, and combine data', include=FALSE}
+#### Buoy Data ####
 buoy_data = read_table("2021Buoy.txt") %>% 
   full_join(read_table("2022Buoy.txt")) %>% #Join both years of buoy data
   rename(year = "#YY",
@@ -36,9 +37,7 @@ buoy_data = read_table("2021Buoy.txt") %>%
          atemp = as.numeric(atemp),
          wtemp = as.numeric(wtemp)) %>% #Convert types
   mutate(source = "water")
-```
-
-```{r, include=FALSE}
+#### Ground Data ####
 ground_data = read_excel("2021Chiwaukee.xls", skip=2) %>% 
   full_join(read_excel("2022Chiwaukee.xlsx", skip=2)) %>% #Join both years of air quality data
   rename(timestamp = "Monitor Name", 
@@ -95,9 +94,7 @@ ground_data = read_excel("2021Chiwaukee.xls", skip=2) %>%
          co = round(as.numeric(co), 3)) %>% #Convert types
   mutate(atemp = (atemp - 32) / 1.8, wspeed = wspeed * 1609.344 / 3600) %>% #Convert to metric
   mutate(source = "ground") #Add source tag
-```
-
-```{r, include=FALSE}
+#### Mixed Data ####
 mixed_data = full_join(ground_data, buoy_data) %>%
   mutate(year = year(timestamp),
          month = month(timestamp, label = TRUE),
@@ -112,75 +109,45 @@ mixed_data = full_join(ground_data, buoy_data) %>%
   mutate(air_water_temp_difference = atemp - wtemp)
 ```
 
-<p>Introduction</p>
+# Introduction
 
-<p>The opening sentence or sentences should draw the reader into your report by providing high-level motivation for the analysis.</p>
 
-<p>Describe the question or questions of interest and the motivation for the analysis.</p>
 
-<p>Conclude the introduction with a thesis statement.</p>
+## Background
 
-<p>A thesis statement comprises one or two declarative sentences that summarize the main point of the report and clearly makes an assertion and communicates to the reader the position the authors have taken on the topic.1Links to an external site.</p>
 
-<p>Background</p>
 
-<p>Describe the data set, how it was collected, what the variables mean.</p>
+## Analysis
 
-<p>Cite the source of your data.</p>
 
-<p>Describe any background information needed to better comprehend the question or questions you are posing and how the data relate to the question.</p>
 
-<p>Describe any unusual factors which may affect interpretation of results.</p>
+## Discussion
 
-<p>Describe what you intend to do in the rest of the report.</p>
 
-<p>Analysis</p>
 
-<p>Include numerical and graphical summaries of the data. Be sure to introduce and describe your numerical and graphical summaries. Do not display a series of summaries without text explaining them.</p>
+## References
 
-<p>Make sure to include at least one graphical display of the data that best supports your main conclusions for your primary question, and explain how it supports your conclusions.</p>
+In the R Markdown file, you may automatically cite other resources by using a caret followed by the reference between square brackets: ^[your reference text] which will place a marker at this location and a footnote at the end of the document.
 
-<p>For each inference you make, briefly describe the method you use and what the results are.</p>
 
-<p>Provide evidence to support each of your claims.</p>
+###############################################################
+##Testing ground, cell below will not evaluate when knitting.##
+###############################################################
 
-<p>This section should not include substantial interpretation of results. Leave that for the discussion.</p>
-
-<p>Discussion</p>
-
-<p>Provide broader interpretations of your analysis and describe how to interpret your results with respect to your question of interest.</p>
-
-<p>Discuss any potential short-comings of the analysis.</p>
-
-<p>Discuss potential future directions for additional work</p>
-
-<p>New questions</p>
-
-<p>Different methods to address the same questions</p>
-
-<p>New data you might collect to refine your understanding</p>
-
-<p>Summarize your primary conclusions and the primary evidence that supports these conclusions.</p>
-
-<p>References</p>
-
-<p>In the R Markdown file, you may automatically cite other resources by using a caret followed by the reference between square brackets: ^[your reference text] which will place a marker at this location and a footnote at the end of the document.</p>
-
-```{r}
+```{r, eval=FALSE}
 buoy_data %>%
   ggplot(aes(x = day, y = wtemp)) + geom_violin() + facet_grid(vars(month), vars(year), scales = "free")
-```
 
-```{r}
+
 mixed_data %>%
   ggplot(aes(x = day, y = u, color = air_water_temp_difference)) + geom_point() + facet_grid(vars(month), vars(year), scales = "free") + scale_color_viridis_c(direction = -1)
-```
-```{r}
+
+
 mixed_data %>%
   filter(month == "Aug" & day <= 7) %>%
   ggplot(aes(x = hour, y = solar, color = wday)) + geom_smooth() + geom_point() + facet_grid(vars(year), scales = "free") + scale_color_viridis_d(direction = -1, option = "D")
-```
-```{r}
+
+
 mixed_data %>%
   filter(month == "Jun" & year == "2021") %>%
   ggplot(aes(x = day, y = u, color = ozone)) + geom_point() + scale_color_viridis_c()
