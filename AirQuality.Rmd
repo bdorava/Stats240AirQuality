@@ -10,6 +10,7 @@ library(readxl)
 library(tidyverse)
 library(lubridate)
 library(viridisLite)
+library(kableExtra)
 source("scripts/viridis.R")
 source("scripts/ggprob.R")
 ```
@@ -115,66 +116,34 @@ mixed_data = full_join(ground_data, buoy_data) %>%
 ```
 
 ```{r}
-stats = mixed_data %>%
-  summarise(mu = mean(.$wspeed),
-            sigma = sd(.$wspeed))
-
-gnorm(stats$mu, stats$sigma) + geom_vline(xintercept = c(-2,10))
-pnorm(c(-2, 10), stats$mu, stats$sigma)
-
 ustats = mixed_data %>%
   summarise(mu = mean(.$u),
             sigma = sd(.$u))
-
-gnorm(ustats$mu, ustats$sigma) + geom_vline(xintercept = c(-8,8))
-pnorm(c(-8, 8), ustats$mu, ustats$sigma)
+tempu = pnorm(c(8, -8), ustats$mu, ustats$sigma)
+low_wind_zonal = first(tempu) - last(tempu)
 
 vstats = mixed_data %>%
   summarise(mu = mean(.$v),
             sigma = sd(.$v))
+tempv = pnorm(c(8, -8), vstats$mu, vstats$sigma)
+low_wind_meridional = first(tempv) - last(tempv)
+#Since wind speed varies, we split our data into low-speed and high-speed, where high-speed > 8m/s in either component. Quantiles of each component are given by low_wind_zonal and low_wind_meridional
 
-gnorm(vstats$mu, vstats$sigma) + geom_vline(xintercept = c(-8,8))
-pnorm(c(-8, 8), vstats$mu, vstats$sigma)
+
+gnorm(ustats$mu, ustats$sigma, a = -8, b = 8, fill = "red") +
+  geom_vline(xintercept = c(-8,8)) #TODO Titles, labels
+gnorm(vstats$mu, vstats$sigma, a = -8, b = 8, fill = "red") +
+  geom_vline(xintercept = c(-8,8)) #TODO Titles, labels, combine these into 1 figure
 
 mixed_data = mixed_data %>%
-  mutate(high_wind = abs(u) > 8 | abs(v) > 8)
-
-ggplot(mixed_data, aes(x = u, y = v, color = high_wind)) + geom_point()
+  mutate(high_wind = abs(u) > 8 | abs(v) > 8) #Adds high_wind as boolean flag
 ```
 
+This is an example of lake breeze, characterized by drop in land temperature, shifting wind direction, increased ozone levels.
 ```{r}
 mixed_data %>%
-  #filter(u < 0) %>%
-  filter(year == 2022, month == "May", day == 19, hour > 7) %>%
-  ggplot(.) + geom_point(aes(x = hour, y = atemp, color = ozone)) + geom_text(aes(x = hour, y = atemp-.5, angle = -wdir, color = ozone), label = "↓")
-```
-
-```{r}
-mixed_data %>%
-  #filter(u < 0) %>%
-  filter(year == 2021, month == "Jun", day == 3) %>%
-  ggplot(.) + geom_point(aes(x = hour, y = atemp, color = ozone)) + geom_text(aes(x = hour, y = atemp-.5, angle = -wdir, color = ozone), label = "↓")
-```
-
-```{r}
-mixed_data %>%
-  group_by(wday, high_wind) %>%
-  drop_na(ozone) %>%
-  summarise(mean_ozone = mean(ozone))
-```
-
-
-```{r}
-mixed_data %>%
- # filter(!high_wind) %>%
-  ggplot(aes(x=u, y=air_water_temp_difference, color=high_wind)) + geom_point()
-```
-
-```{r}
-mixed_data %>%
-  arrange(desc(wspeed), timestamp) %>%
-  filter(wspeed > 10) %>%
-  ggplot(aes(x=wdir, y=wspeed, color = source)) + geom_point()
+  filter(year == 2022, month == "May", day == 19) %>%
+  ggplot(.) + geom_point(aes(x = hour, y = atemp, color = ozone)) + geom_text(aes(x = hour, y = atemp-.5, angle = -wdir, color = ozone), label = "↓") + geom_col(aes(x = hour, y = solar/200)) #TODO Fix solar or remove
 ```
 
 # Introduction
@@ -233,3 +202,30 @@ mixed_data %>%
   ggplot(aes(x = timestamp, y = u, color = ozone)) + geom_point()
 ```
 
+```{r}
+mixed_data %>%
+  #filter(u < 0) %>%
+  filter(year == 2021, month == "Jun", day == 3) %>%
+  ggplot(.) + geom_point(aes(x = hour, y = atemp, color = ozone)) + geom_text(aes(x = hour, y = atemp-.5, angle = -wdir, color = ozone), label = "↓")
+```
+
+```{r}
+mixed_data %>%
+  group_by(wday, high_wind) %>%
+  drop_na(ozone) %>%
+  summarise(mean_ozone = mean(ozone))
+```
+
+
+```{r}
+mixed_data %>%
+ # filter(!high_wind) %>%
+  ggplot(aes(x=u, y=air_water_temp_difference, color=high_wind)) + geom_point()
+```
+
+```{r}
+mixed_data %>%
+  arrange(desc(wspeed), timestamp) %>%
+  filter(wspeed > 10) %>%
+  ggplot(aes(x=wdir, y=wspeed, color = source)) + geom_point()
+```
