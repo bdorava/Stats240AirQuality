@@ -226,6 +226,19 @@ mixed_data %>%
 ```{r}
 mixed_data %>%
   arrange(desc(wspeed), timestamp) %>%
-  filter(wspeed > 10) %>%
-  ggplot(aes(x=wdir, y=wspeed, color = source)) + geom_point()
+  drop_na(ozone) %>%
+  filter(source == "ground") %>%
+  ggplot(aes(x=wdir, y=wspeed, color =ozone)) + geom_point()
+
+x = mixed_data %>%
+  filter(wdir > 140, wdir < 200) %>%
+  select(ozone) %>%
+  drop_na()
+
+y = mixed_data %>%
+  filter(wdir > 250, wdir < 310) %>%
+  select(ozone) %>%
+  drop_na()
+
+t.test(x, y)
 ```
