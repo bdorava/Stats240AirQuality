@@ -136,7 +136,8 @@ gnorm(vstats$mu, vstats$sigma, a = -8, b = 8, fill = "red") +
   geom_vline(xintercept = c(-8,8)) #TODO Titles, labels, combine these into 1 figure
 
 mixed_data = mixed_data %>%
-  mutate(high_wind = abs(u) > 8 | abs(v) > 8) #Adds high_wind as boolean flag
+  mutate(xbin = round(u),
+         ybin = round(v))
 ```
 
 This is an example of lake breeze, characterized by drop in land temperature, shifting wind direction, increased ozone levels.
@@ -171,6 +172,54 @@ In the R Markdown file, you may automatically cite other resources by using a ca
 ##Testing ground, cell below will not evaluate when knitting.##
 ###############################################################
 
+```{r}
+mixed_data %>%
+  filter(source == "ground") %>%
+  drop_na(ozone) %>%
+  ggplot() + geom_point(aes(x=u, y=v, color=ozone))
+
+grouped_data = mixed_data %>%
+  filter(source == "ground") %>%
+  drop_na(ozone) %>%
+  group_by(xbin, ybin) %>%
+  summarise(mean_ozone = mean(ozone),
+            median_ozone = median(ozone),
+            sd_ozone = sd(ozone),
+            n_ozone = n())
+
+grouped_data %>%
+  ggplot() +
+  geom_tile(aes(x = xbin, y = ybin, fill = mean_ozone)) +
+  geom_point(aes(x=u, y=v, color=ozone), mixed_data %>%
+               drop_na(ozone), size = 0.2) #Sanity check to see the data points are in bins
+```
+
+
+```{r}
+grouped_data %>%
+  ggplot() + geom_tile(aes(x = xbin, y = ybin, fill = median_ozone)) + 
+  geom_text(aes(x = xbin, y = ybin, label = n_ozone, size = 1/n_ozone)) #Numbered samples
+
+grouped_data %>%
+  ggplot() + geom_tile(aes(x = xbin, y = ybin, fill = median_ozone, alpha = n_ozone)) #Visual representation of sample size. Very low ozone counts when wind is calm
+
+grouped_data %>%
+  ggplot() + geom_tile(aes(x = xbin, y = ybin, fill = sd_ozone)) + 
+  geom_text(aes(x = xbin, y = ybin, label = n_ozone, size = 1/n_ozone))
+grouped_data %>%
+  ggplot() + geom_tile(aes(x = xbin, y = ybin, fill = median_ozone, alpha = n_ozone)) #Very low ozone counts when wind is calm
+grouped_data %>%
+  ggplot() + geom_tile(aes(x = xbin, y = ybin, fill = sd_ozone)) #Increased variance when u < 0 and v > 0, greatest variance near u = -1, v = 4
+
+mixed_data %>%
+  drop_na(ozone) %>%
+  filter(xbin == -1, ybin == 4) %>%
+  select(year, month, day) %>%
+  group_by(year, month, day) %>%
+  unique() #Days with favorable wind conditions
+```
+
+
 ```{r, eval=FALSE}
 buoy_data %>%
   ggplot(aes(x = day, y = wtemp)) + geom_violin() + facet_grid(vars(month), vars(year), scales = "free")
@@ -193,6 +242,7 @@ mixed_data %>%
 
 ```{r, eval=FALSE}
 clean_data = mixed_data %>%
+
 ```
 
 
@@ -206,7 +256,7 @@ mixed_data %>%
 mixed_data %>%
   #filter(u < 0) %>%
   filter(year == 2021, month == "Jun", day == 3) %>%
-  ggplot(.) + geom_point(aes(x = hour, y = atemp, color = ozone)) + geom_text(aes(x = hour, y = atemp-.5, angle = -wdir, color = ozone), label = "↓")
+  ggplot(.) + geom_point(aes(x = hour, y = atemp, color = ozone)) + geom_text(aes(x = hour, y = atemp-.5, angle = -wdir, color = ozone, size = wspeed), label = "↓")
 ```
 
 ```{r}
@@ -228,7 +278,7 @@ mixed_data %>%
   arrange(desc(wspeed), timestamp) %>%
   drop_na(ozone) %>%
   filter(source == "ground") %>%
-  ggplot(aes(x=wdir, y=wspeed, color =ozone)) + geom_point()
+  ggplot(aes(x=wdir, y=wspeed, color=ozone)) + geom_point()
 
 x = mixed_data %>%
   filter(wdir > 140, wdir < 200) %>%
@@ -242,3 +292,4 @@ y = mixed_data %>%
 
 t.test(x, y)
 ```
+
