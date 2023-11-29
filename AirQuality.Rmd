@@ -39,8 +39,7 @@ buoy_data = read_table("data/2021Buoy.txt") %>%
          wdir = as.integer(wdir),
          atemp = as.numeric(atemp),
          wtemp = as.numeric(wtemp)) %>% #Convert types
-  mutate(source = "water")
-##TODO## Remove outliers
+  mutate(data_source = "water")
 
 #### Ground Data ####
 ground_data = read_excel("data/2021Chiwaukee.xls", skip=2) %>% 
@@ -98,7 +97,7 @@ ground_data = read_excel("data/2021Chiwaukee.xls", skip=2) %>%
          noy = round(as.numeric(noy), 1),
          co = round(as.numeric(co), 3)) %>% #Convert types
   mutate(atemp = (atemp - 32) / 1.8, wspeed = wspeed * 1609.344 / 3600) %>% #Convert to metric
-  mutate(source = "ground") #Add source tag
+  mutate(data_source = "ground") #Add data_source tag
 #### Mixed Data ####
 mixed_data = full_join(ground_data, buoy_data) %>%
   mutate(year = year(timestamp),
@@ -112,39 +111,48 @@ mixed_data = full_join(ground_data, buoy_data) %>%
   mutate(u = round(-wspeed * sin(wdir*2*pi/360), 2),
          v = round(-wspeed * cos(wdir*2*pi/360), 2)) %>% #Determine components of 2-D flow, from wdir
   mutate(air_water_temp_difference = atemp - wtemp) %>%
-  drop_na(wspeed, wdir) #Drop rows with missing data
-```
-
-```{r}
-ustats = mixed_data %>%
-  summarise(mu = mean(.$u),
-            sigma = sd(.$u))
-tempu = pnorm(c(8, -8), ustats$mu, ustats$sigma)
-low_wind_zonal = first(tempu) - last(tempu)
-
-vstats = mixed_data %>%
-  summarise(mu = mean(.$v),
-            sigma = sd(.$v))
-tempv = pnorm(c(8, -8), vstats$mu, vstats$sigma)
-low_wind_meridional = first(tempv) - last(tempv)
-#Since wind speed varies, we split our data into low-speed and high-speed, where high-speed > 8m/s in either component. Quantiles of each component are given by low_wind_zonal and low_wind_meridional
-
-
-gnorm(ustats$mu, ustats$sigma, a = -8, b = 8, fill = "red") +
-  geom_vline(xintercept = c(-8,8)) #TODO Titles, labels
-gnorm(vstats$mu, vstats$sigma, a = -8, b = 8, fill = "red") +
-  geom_vline(xintercept = c(-8,8)) #TODO Titles, labels, combine these into 1 figure
-
-mixed_data = mixed_data %>%
+  drop_na(wspeed, wdir) %>% #Drop rows with missing data
   mutate(xbin = round(u),
          ybin = round(v))
 ```
 
 This is an example of lake breeze, characterized by drop in land temperature, shifting wind direction, increased ozone levels.
 ```{r}
-mixed_data %>%
-  filter(year == 2022, month == "May", day == 19) %>%
-  ggplot(.) + geom_point(aes(x = hour, y = atemp, color = ozone)) + geom_text(aes(x = hour, y = atemp-.5, angle = -wdir, color = ozone), label = "↓") + geom_col(aes(x = hour, y = solar/200)) #TODO Fix solar or remove
+breeze_example_year = 2022
+breeze_example_month = "May"
+breeze_example_day = 19
+
+breeze_example = mixed_data %>%
+  filter(year == breeze_example_year,
+         month == breeze_example_month,
+         day == breeze_example_day)
+
+breeze_ground_example = mixed_data %>%
+  filter(year == breeze_example_year,
+         month == breeze_example_month,
+         day == breeze_example_day) %>%
+  filter(data_source == "ground")
+
+breeze_water_example = mixed_data %>%
+  filter(year == breeze_example_year,
+         month == breeze_example_month,
+         day == breeze_example_day) %>%
+  filter(data_source == "water")
+
+ggplot() +
+  geom_point(aes(x = timestamp, y = atemp, color = ozone),
+             breeze_ground_example,
+             shape = "square") +
+  geom_point(aes(x = timestamp, y = atemp),
+             breeze_water_example,
+             shape = 3) +
+  geom_text(aes(x = timestamp, y = atemp-.5, angle = -wdir, size = wspeed),
+            breeze_example,
+            label = "↓",
+            color = "red",
+            check_overlap = T) +
+  geom_line(aes(x = timestamp, y = solar/200),
+           breeze_ground_example) #TODO Fix solar or remove
 ```
 
 # Introduction
@@ -174,12 +182,12 @@ In the R Markdown file, you may automatically cite other resources by using a ca
 
 ```{r}
 mixed_data %>%
-  filter(source == "ground") %>%
+  filter(data_source == "ground") %>%
   drop_na(ozone) %>%
   ggplot() + geom_point(aes(x=u, y=v, color=ozone))
 
 grouped_data = mixed_data %>%
-  filter(source == "ground") %>%
+  filter(data_source == "ground") %>%
   drop_na(ozone) %>%
   group_by(xbin, ybin) %>%
   summarise(mean_ozone = mean(ozone),
@@ -236,7 +244,7 @@ mixed_data %>%
 
 mixed_data %>%
   #filter(source == "water") %>%
-  ggplot(aes(x = timestamp, y = u, color = source)) + geom_point(alpha = 0.5, size = 0.1)
+  ggplot(aes(x = timestamp, y = u, color = data_source)) + geom_point(alpha = 0.5, size = 0.1)
 ```
 
 
@@ -277,7 +285,7 @@ mixed_data %>%
 mixed_data %>%
   arrange(desc(wspeed), timestamp) %>%
   drop_na(ozone) %>%
-  filter(source == "ground") %>%
+  filter(data_source == "ground") %>%
   ggplot(aes(x=wdir, y=wspeed, color=ozone)) + geom_point()
 
 x = mixed_data %>%
