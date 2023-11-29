@@ -157,6 +157,31 @@ grouped_data %>%
 grouped_data %>%
   ggplot() + geom_tile(aes(x = xbin, y = ybin, fill = median_ozone)) + 
   geom_text(aes(x = xbin, y = ybin, label = n_ozone, size = 1/n_ozone)) #Numbered samples
+data_nw_center = grouped_data %>%
+    filter(((-0.5 < xbin & xbin < 2.5 & -1.5 < ybin & ybin < 1.5)) | ((-2.5 < xbin & xbin < 0.5 & 1.5 < ybin & ybin < 4.5)))
+
+
+# Perform Welch's t-test
+t_test_result_q1 = t.test(data_nw_center$mean_ozone[data_nw_center$xbin < 0], 
+                          data_nw_center$mean_ozone[data_nw_center$xbin >= 0], 
+                          alternative = "two.sided", 
+                          var.equal = FALSE)
+
+# Print the test result
+t_test_result_q1
+
+# Filter data for the northeast and center bins
+data_nw_ne = grouped_data %>%
+  filter(((-0.5 < xbin & xbin < 2.5 & 1.5 < ybin & ybin < 4.5)) | ((-2.5 < xbin & xbin < 0.5 & 1.5 < ybin & ybin < 4.5)))
+
+# Perform Welch's t-test
+t_test_result_q2 = t.test(data_nw_ne$mean_ozone[data_nw_ne$xbin < 0], 
+                          data_nw_ne$mean_ozone[data_nw_ne$xbin >= 0], 
+                          alternative = "two.sided", 
+                          var.equal = FALSE)
+
+# Print the test result
+t_test_result_q2
 
 grouped_data %>%
   ggplot() + geom_tile(aes(x = xbin, y = ybin, fill = median_ozone, alpha = n_ozone)) #Visual representation of sample size. Very low ozone counts when wind is calm
