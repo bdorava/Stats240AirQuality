@@ -15,34 +15,9 @@ source("scripts/viridis.R")
 source("scripts/ggprob.R")
 ```
 
-```{r label='Extract, clean, and combine data', include=FALSE}
-#### Buoy Data ####
-buoy_data = read_table("data/2021Buoy.txt") %>% 
-  full_join(read_table("data/2022Buoy.txt")) %>% #Join both years of buoy data
-  rename(year = "#YY",
-         month = "MM",
-         day = "DD",
-         hour = "hh",
-         minute = "mm",
-         wspeed = "WSPD",
-         wdir = "WDIR",
-         atemp = "ATMP",
-         wtemp = "WTMP") %>% #Rename columns
-  select(year, month, day, hour, minute, wspeed, wdir, atemp, wtemp) %>% #Select useful columns
-  filter(year != "#yr") %>% #Remove padding
-  mutate(wdir = case_when(wdir != "999" ~ wdir, .default = NA),
-         wspeed = case_when(wspeed != "99.0" ~ wspeed, .default = NA),
-         atemp = case_when(atemp != "999.0" ~ atemp, .default = NA),
-         wtemp = case_when(wtemp != "999.0" ~ wtemp, .default = NA)) %>% #Convert missing values to NA
-  mutate(timestamp = ymd_hm(str_c(year, month, day, hour, minute))) %>% #Create timestamp
-  mutate(wspeed = as.numeric(wspeed),
-         wdir = as.integer(wdir),
-         atemp = as.numeric(atemp),
-         wtemp = as.numeric(wtemp)) %>% #Convert types
-  mutate(data_source = "water")
-
+```{r label='Extract and clean data', include=FALSE}
 #### Ground Data ####
-ground_data = read_excel("data/2021Chiwaukee.xls", skip=2) %>% 
+full_data = read_excel("data/2021Chiwaukee.xls", skip=2) %>% 
   full_join(read_excel("data/2022Chiwaukee.xlsx", skip=2)) %>% #Join both years of air quality data
   rename(timestamp = "Monitor Name", 
          ozone = "OZONE",
@@ -97,20 +72,14 @@ ground_data = read_excel("data/2021Chiwaukee.xls", skip=2) %>%
          noy = round(as.numeric(noy), 1),
          co = round(as.numeric(co), 3)) %>% #Convert types
   mutate(atemp = (atemp - 32) / 1.8, wspeed = wspeed * 1609.344 / 3600) %>% #Convert to metric
-  mutate(data_source = "ground") #Add data_source tag
-#### Mixed Data ####
-mixed_data = full_join(ground_data, buoy_data) %>%
   mutate(year = year(timestamp),
          month = month(timestamp, label = TRUE),
          wday = wday(timestamp, label = TRUE), 
          day = day(timestamp),
          hour = hour(timestamp),
          minute = minute(timestamp)) %>% 
-  #Convert values less than 0 to 0
-  #mutate(noy = case_when(noy < 0 ~ 0)) %>%
   mutate(u = round(-wspeed * sin(wdir*2*pi/360), 2),
          v = round(-wspeed * cos(wdir*2*pi/360), 2)) %>% #Determine components of 2-D flow, from wdir
-  mutate(air_water_temp_difference = atemp - wtemp) %>%
   drop_na(wspeed, wdir) %>% #Drop rows with missing data
   mutate(xbin = round(u),
          ybin = round(v))
@@ -122,37 +91,20 @@ breeze_example_year = 2022
 breeze_example_month = "May"
 breeze_example_day = 19
 
-breeze_example = mixed_data %>%
+breeze_example = full_data %>%
   filter(year == breeze_example_year,
          month == breeze_example_month,
          day == breeze_example_day)
 
-breeze_ground_example = mixed_data %>%
-  filter(year == breeze_example_year,
-         month == breeze_example_month,
-         day == breeze_example_day) %>%
-  filter(data_source == "ground")
-
-breeze_water_example = mixed_data %>%
-  filter(year == breeze_example_year,
-         month == breeze_example_month,
-         day == breeze_example_day) %>%
-  filter(data_source == "water")
-
 ggplot() +
   geom_point(aes(x = timestamp, y = atemp, color = ozone),
-             breeze_ground_example,
+             breeze_example,
              shape = "square") +
-  geom_point(aes(x = timestamp, y = atemp),
-             breeze_water_example,
-             shape = 3) +
   geom_text(aes(x = timestamp, y = atemp-.5, angle = -wdir, size = wspeed),
             breeze_example,
             label = "↓",
             color = "red",
-            check_overlap = T) +
-  geom_line(aes(x = timestamp, y = solar/200),
-           breeze_ground_example) #TODO Fix solar or remove
+            check_overlap = T)
 ```
 
 # Introduction
@@ -181,13 +133,11 @@ In the R Markdown file, you may automatically cite other resources by using a ca
 ###############################################################
 
 ```{r}
-mixed_data %>%
-  filter(data_source == "ground") %>%
+full_data %>%
   drop_na(ozone) %>%
   ggplot() + geom_point(aes(x=u, y=v, color=ozone))
 
-grouped_data = mixed_data %>%
-  filter(data_source == "ground") %>%
+grouped_data = full_data %>%
   drop_na(ozone) %>%
   group_by(xbin, ybin) %>%
   summarise(mean_ozone = mean(ozone),
@@ -198,7 +148,7 @@ grouped_data = mixed_data %>%
 grouped_data %>%
   ggplot() +
   geom_tile(aes(x = xbin, y = ybin, fill = mean_ozone)) +
-  geom_point(aes(x=u, y=v, color=ozone), mixed_data %>%
+  geom_point(aes(x=u, y=v, color=ozone), full_data %>%
                drop_na(ozone), size = 0.2) #Sanity check to see the data points are in bins
 ```
 
@@ -219,7 +169,7 @@ grouped_data %>%
 grouped_data %>%
   ggplot() + geom_tile(aes(x = xbin, y = ybin, fill = sd_ozone)) #Increased variance when u < 0 and v > 0, greatest variance near u = -1, v = 4
 
-mixed_data %>%
+full_data %>%
   drop_na(ozone) %>%
   filter(xbin == -1, ybin == 4) %>%
   select(year, month, day) %>%
@@ -229,71 +179,53 @@ mixed_data %>%
 
 
 ```{r, eval=FALSE}
-buoy_data %>%
-  ggplot(aes(x = day, y = wtemp)) + geom_violin() + facet_grid(vars(month), vars(year), scales = "free")
+full_data %>%
+  ggplot(aes(x = day, y = u)) + geom_point() + facet_grid(vars(month), vars(year), scales = "free") + scale_color_viridis_c(direction = -1)
 
 
-mixed_data %>%
-  ggplot(aes(x = day, y = u, color = air_water_temp_difference)) + geom_point() + facet_grid(vars(month), vars(year), scales = "free") + scale_color_viridis_c(direction = -1)
-
-
-mixed_data %>%
+full_data %>%
   filter(month == "Aug" & day <= 7) %>%
   ggplot(aes(x = hour, y = solar, color = wday)) + geom_smooth() + geom_point() + facet_grid(vars(year), scales = "free") + scale_color_viridis_d(direction = -1, option = "D")
 
 
-mixed_data %>%
+full_data %>%
   #filter(source == "water") %>%
-  ggplot(aes(x = timestamp, y = u, color = data_source)) + geom_point(alpha = 0.5, size = 0.1)
-```
-
-
-```{r, eval=FALSE}
-clean_data = mixed_data %>%
-
+  ggplot(aes(x = timestamp, y = u)) + geom_point(alpha = 0.5, size = 0.1)
 ```
 
 
 ```{r}
-mixed_data %>%
+full_data %>%
   filter(month == "Jun" & year == "2021") %>%
   ggplot(aes(x = timestamp, y = u, color = ozone)) + geom_point()
 ```
 
 ```{r}
-mixed_data %>%
+full_data %>%
   #filter(u < 0) %>%
   filter(year == 2021, month == "Jun", day == 3) %>%
   ggplot(.) + geom_point(aes(x = hour, y = atemp, color = ozone)) + geom_text(aes(x = hour, y = atemp-.5, angle = -wdir, color = ozone, size = wspeed), label = "↓")
 ```
 
 ```{r}
-mixed_data %>%
+full_data %>%
   group_by(wday, high_wind) %>%
   drop_na(ozone) %>%
   summarise(mean_ozone = mean(ozone))
 ```
 
-
 ```{r}
-mixed_data %>%
- # filter(!high_wind) %>%
-  ggplot(aes(x=u, y=air_water_temp_difference, color=high_wind)) + geom_point()
-```
-
-```{r}
-mixed_data %>%
+full_data %>%
   arrange(desc(wspeed), timestamp) %>%
   drop_na(ozone) %>%
-  filter(data_source == "ground") %>%
   ggplot(aes(x=wdir, y=wspeed, color=ozone)) + geom_point()
 
-x = mixed_data %>%
+x = full_data %>%
   filter(wdir > 140, wdir < 200) %>%
   select(ozone) %>%
   drop_na()
 
-y = mixed_data %>%
+y = full_data %>%
   filter(wdir > 250, wdir < 310) %>%
   select(ozone) %>%
   drop_na()
