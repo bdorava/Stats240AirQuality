@@ -1,3 +1,317 @@
+<<<<<<< HEAD
+---
+title: "Air Pollution and Lake Breeze"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = TRUE,
+                      error = TRUE)
+library(readxl)
+library(tidyverse)
+library(lubridate)
+library(viridisLite)
+library(kableExtra)
+source("../scripts/viridis.R")
+source("../scripts/ggprob.R")
+```
+
+```{r label='Extract, clean, and combine data', include=FALSE}
+#### Buoy Data ####
+buoy_data = read_table("Stats240AirQuality/data/2021Buoy.txt") %>% 
+  full_join(read_table("Stats240AirQuality/data/2022Buoy.txt")) %>% #Join both years of buoy data
+  rename(year = "#YY",
+         month = "MM",
+         day = "DD",
+         hour = "hh",
+         minute = "mm",
+         wspeed = "WSPD",
+         wdir = "WDIR",
+         atemp = "ATMP",
+         wtemp = "WTMP") %>% #Rename columns
+  select(year, month, day, hour, minute, wspeed, wdir, atemp, wtemp) %>% #Select useful columns
+  filter(year != "#yr") %>% #Remove padding
+  mutate(wdir = case_when(wdir != "999" ~ wdir, .default = NA),
+         wspeed = case_when(wspeed != "99.0" ~ wspeed, .default = NA),
+         atemp = case_when(atemp != "999.0" ~ atemp, .default = NA),
+         wtemp = case_when(wtemp != "999.0" ~ wtemp, .default = NA)) %>% #Convert missing values to NA
+  mutate(timestamp = ymd_hm(str_c(year, month, day, hour, minute))) %>% #Create timestamp
+  mutate(wspeed = as.numeric(wspeed),
+         wdir = as.integer(wdir),
+         atemp = as.numeric(atemp),
+         wtemp = as.numeric(wtemp)) %>% #Convert types
+  mutate(source = "water")
+##TODO## Remove outliers
+
+#### Ground Data ####
+ground_data = read_excel("Stats240AirQuality/data/2021Chiwaukee.xls", skip=2) %>% 
+  full_join(read_excel("Stats240AirQuality/data/2022Chiwaukee.xlsx", skip=2)) %>% #Join both years of air quality data
+  rename(timestamp = "Monitor Name", 
+         ozone = "OZONE",
+         atemp = "T_OUTDOOR",
+         wspeed = "WIND SPEED - R", 
+         wdir = "WIND DIRECTION - R",
+         precip = "RAIN/MELT PCPT",
+         solar = "SOLAR RADIATION",
+         pm25 = "PM2.5 - LC",
+         noy = "NOy",
+         co = "CARBON MONOXIDE") %>% #Rename columns
+  select(timestamp, ozone, atemp, wspeed,
+         wdir, precip, solar, pm25, noy, co) %>% #Select useful columns
+  filter(timestamp != "Units" &
+         timestamp != "Parameter Code | POC" &
+         timestamp != "Tag Number" &
+         timestamp != "Minimum" &
+         timestamp != "MinDate" &
+         timestamp != "Maximum" &
+         timestamp != "MaxDate" &
+         timestamp != "Avg" &
+         timestamp != "Num" &
+         timestamp != "Data[%]" &
+         timestamp != "STD") %>% #Remove Padding
+  mutate(.,
+         ozone = case_when(str_detect(.$ozone, "[A-Za-z]") ~ NA,
+                                     .default = ozone),
+         atemp = case_when(str_detect(.$atemp, "[A-Za-z]") ~ NA,
+                                     .default = atemp),
+         wspeed = case_when(str_detect(.$wspeed, "[A-Za-z]") ~ NA,
+                                     .default = wspeed),
+         wdir = case_when(str_detect(.$wdir, "[A-Za-z]") ~ NA,
+                                     .default = wdir),
+         precip = case_when(str_detect(.$precip, "[A-Za-z]") ~ NA,
+                                     .default = precip),
+         solar = case_when(str_detect(.$solar, "[A-Za-z]") ~ NA,
+                                     .default = solar),
+         pm25 = case_when(str_detect(.$pm25, "[A-Za-z]") ~ NA,
+                                     .default = pm25),
+         noy = case_when(str_detect(.$noy, "[A-Za-z]") ~ NA,
+                                     .default = noy),
+         co = case_when(str_detect(.$co, "[A-Za-z]") ~ NA,
+                                     .default = co)) %>% #Remove missing values
+  mutate(timestamp = mdy_hm(timestamp),
+         ozone = round(as.numeric(ozone), 1),
+         atemp = round(as.numeric(atemp), 1),
+         wspeed = round(as.numeric(wspeed), 1),
+         wdir = round(as.integer(wdir)),
+         precip = round(as.numeric(precip), 1),
+         solar = round(as.numeric(solar), 1),
+         pm25 = round(as.numeric(pm25), 1),
+         noy = round(as.numeric(noy), 1),
+         co = round(as.numeric(co), 3)) %>% #Convert types
+  mutate(atemp = (atemp - 32) / 1.8, wspeed = wspeed * 1609.344 / 3600) %>% #Convert to metric
+  mutate(source = "ground") #Add source tag
+#### Mixed Data ####
+mixed_data = full_join(ground_data, buoy_data) %>%
+  mutate(year = year(timestamp),
+         month = month(timestamp, label = TRUE),
+         wday = wday(timestamp, label = TRUE), 
+         day = day(timestamp),
+         hour = hour(timestamp),
+         minute = minute(timestamp)) %>% 
+  #Convert values less than 0 to 0
+  #mutate(noy = case_when(noy < 0 ~ 0)) %>%
+  mutate(u = round(-wspeed * sin(wdir*2*pi/360), 2),
+         v = round(-wspeed * cos(wdir*2*pi/360), 2)) %>% #Determine components of 2-D flow, from wdir
+  mutate(air_water_temp_difference = atemp - wtemp) %>%
+  drop_na(wspeed, wdir) #Drop rows with missing data
+```
+
+```{r}
+ustats = mixed_data %>%
+  summarise(mu = mean(.$u),
+            sigma = sd(.$u))
+tempu = pnorm(c(8, -8), ustats$mu, ustats$sigma)
+low_wind_zonal = first(tempu) - last(tempu)
+
+vstats = mixed_data %>%
+  summarise(mu = mean(.$v),
+            sigma = sd(.$v))
+tempv = pnorm(c(8, -8), vstats$mu, vstats$sigma)
+low_wind_meridional = first(tempv) - last(tempv)
+#Since wind speed varies, we split our data into low-speed and high-speed, where high-speed > 8m/s in either component. Quantiles of each component are given by low_wind_zonal and low_wind_meridional
+
+
+gnorm(ustats$mu, ustats$sigma, a = -8, b = 8, fill = "red") +
+  geom_vline(xintercept = c(-8,8)) #TODO Titles, labels
+gnorm(vstats$mu, vstats$sigma, a = -8, b = 8, fill = "red") +
+  geom_vline(xintercept = c(-8,8)) #TODO Titles, labels, combine these into 1 figure
+
+mixed_data = mixed_data %>%
+  mutate(xbin = round(u),
+         ybin = round(v))
+```
+
+This is an example of lake breeze, characterized by drop in land temperature, shifting wind direction, increased ozone levels.
+```{r}
+mixed_data %>%
+  filter(year == 2022, month == "May", day == 19) %>%
+  ggplot(.) + geom_point(aes(x = hour, y = atemp, color = ozone)) + geom_text(aes(x = hour, y = atemp-.5, angle = -wdir, color = ozone), label = "↓") + geom_col(aes(x = hour, y = solar/200)) #TODO Fix solar or remove
+```
+
+# Introduction
+
+
+
+## Background
+
+1.8 miles away, North-west of buoy
+
+## Analysis
+
+
+
+## Discussion
+
+
+
+## References
+
+In the R Markdown file, you may automatically cite other resources by using a caret followed by the reference between square brackets: ^[your reference text] which will place a marker at this location and a footnote at the end of the document.
+
+
+###############################################################
+##Testing ground, cell below will not evaluate when knitting.##
+###############################################################
+
+```{r}
+mixed_data %>%
+  filter(source == "ground") %>%
+  drop_na(ozone) %>%
+  ggplot() + geom_point(aes(x=u, y=v, color=ozone))
+
+grouped_data = mixed_data %>%
+  filter(source == "ground") %>%
+  drop_na(ozone) %>%
+  group_by(xbin, ybin) %>%
+  summarise(mean_ozone = mean(ozone),
+            median_ozone = median(ozone),
+            sd_ozone = sd(ozone),
+            n_ozone = n())
+
+grouped_data %>%
+  ggplot() +
+  geom_tile(aes(x = xbin, y = ybin, fill = mean_ozone)) +
+  geom_point(aes(x=u, y=v, color=ozone), mixed_data %>%
+               drop_na(ozone), size = 0.2) #Sanity check to see the data points are in bins
+```
+
+
+```{r}
+grouped_data %>%
+  ggplot() + geom_tile(aes(x = xbin, y = ybin, fill = median_ozone)) + 
+  geom_text(aes(x = xbin, y = ybin, label = n_ozone, size = 1/n_ozone)) #Numbered samples
+
+grouped_data %>%
+  ggplot() + geom_tile(aes(x = xbin, y = ybin, fill = median_ozone, alpha = n_ozone)) #Visual representation of sample size. Very low ozone counts when wind is calm
+
+grouped_data %>%
+  ggplot() + geom_tile(aes(x = xbin, y = ybin, fill = sd_ozone)) + 
+  geom_text(aes(x = xbin, y = ybin, label = n_ozone, size = 1/n_ozone))
+grouped_data %>%
+  ggplot() + geom_tile(aes(x = xbin, y = ybin, fill = median_ozone, alpha = n_ozone)) #Very low ozone counts when wind is calm
+grouped_data %>%
+  ggplot() + geom_tile(aes(x = xbin, y = ybin, fill = sd_ozone)) #Increased variance when u < 0 and v > 0, greatest variance near u = -1, v = 4
+
+mixed_data %>%
+  drop_na(ozone) %>%
+  filter(xbin == -1, ybin == 4) %>%
+  select(year, month, day) %>%
+  group_by(year, month, day) %>%
+  unique() #Days with favorable wind conditions
+```
+
+```{r}
+# Hypothesis test for q3
+  q3data = grouped_data %>%
+    filter(((-2.5 < xbin & xbin < 0.5 & 1.5 < ybin & ybin < 4.5)) | ((-2.5 < xbin & xbin < 0.5 & -4.5 < ybin & ybin < 1.5)))
+q3_testresult = t.test(q3data$mean_ozone[q3data$xbin < 0], 
+                          q3data$mean_ozone[q3data$xbin >= 0], 
+                          alternative = "two.sided")
+q3_testresult
+
+# Hypothesis test for q4
+  q4data = grouped_data %>%
+    filter(((-2.5 < xbin & xbin < 0.5 & 1.5 < ybin & ybin < 4.5)) | ((-0.5 < xbin & xbin < 2.5 & -4.5 < ybin & ybin < 1.5)))
+q4_testresult = t.test(q4data$mean_ozone[q4data$xbin < 0], 
+                          q4data$mean_ozone[q4data$xbin >= 0], 
+                          alternative = "two.sided")
+q4_testresult
+```
+
+```{r, eval=FALSE}
+buoy_data %>%
+  ggplot(aes(x = day, y = wtemp)) + geom_violin() + facet_grid(vars(month), vars(year), scales = "free")
+
+
+mixed_data %>%
+  ggplot(aes(x = day, y = u, color = air_water_temp_difference)) + geom_point() + facet_grid(vars(month), vars(year), scales = "free") + scale_color_viridis_c(direction = -1)
+
+
+mixed_data %>%
+  filter(month == "Aug" & day <= 7) %>%
+  ggplot(aes(x = hour, y = solar, color = wday)) + geom_smooth() + geom_point() + facet_grid(vars(year), scales = "free") + scale_color_viridis_d(direction = -1, option = "D")
+
+
+mixed_data %>%
+  #filter(source == "water") %>%
+  ggplot(aes(x = timestamp, y = u, color = source)) + geom_point(alpha = 0.5, size = 0.1)
+```
+
+
+```{r, eval=FALSE}
+clean_data = mixed_data %>%
+
+```
+
+
+```{r}
+mixed_data %>%
+  filter(month == "Jun" & year == "2021") %>%
+  ggplot(aes(x = timestamp, y = u, color = ozone)) + geom_point()
+```
+
+```{r}
+mixed_data %>%
+  #filter(u < 0) %>%
+  filter(year == 2021, month == "Jun", day == 3) %>%
+  ggplot(.) + geom_point(aes(x = hour, y = atemp, color = ozone)) + geom_text(aes(x = hour, y = atemp-.5, angle = -wdir, color = ozone, size = wspeed), label = "↓")
+```
+
+```{r}
+mixed_data %>%
+  group_by(wday, high_wind) %>%
+  drop_na(ozone) %>%
+  summarise(mean_ozone = mean(ozone))
+```
+
+
+```{r}
+mixed_data %>%
+ # filter(!high_wind) %>%
+  ggplot(aes(x=u, y=air_water_temp_difference, color=high_wind)) + geom_point()
+```
+
+```{r}
+mixed_data %>%
+  arrange(desc(wspeed), timestamp) %>%
+  drop_na(ozone) %>%
+  filter(source == "ground") %>%
+  ggplot(aes(x=wdir, y=wspeed, color=ozone)) + geom_point()
+
+x = mixed_data %>%
+  filter(wdir > 140, wdir < 200) %>%
+  select(ozone) %>%
+  drop_na()
+
+y = mixed_data %>%
+  filter(wdir > 250, wdir < 310) %>%
+  select(ozone) %>%
+  drop_na()
+
+t.test(x, y)
+```
+
+=======
 ---
 title: "Air Pollution and Lake Breeze"
 output: html_document
@@ -258,3 +572,4 @@ y = full_data %>%
 t.test(x, y)
 ```
 
+>>>>>>> fbd79b3d2f0b14819c2e073695caef1bb3a61321
