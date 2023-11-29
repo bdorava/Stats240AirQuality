@@ -117,21 +117,6 @@ ggplot() +
 
 ## Analysis
 
-
-
-## Discussion
-
-
-
-## References
-
-In the R Markdown file, you may automatically cite other resources by using a caret followed by the reference between square brackets: ^[your reference text] which will place a marker at this location and a footnote at the end of the document.
-
-
-###############################################################
-##Testing ground, cell below will not evaluate when knitting.##
-###############################################################
-
 ```{r}
 full_data %>%
   drop_na(ozone) %>%
@@ -150,13 +135,7 @@ grouped_data %>%
   geom_tile(aes(x = xbin, y = ybin, fill = mean_ozone)) +
   geom_point(aes(x=u, y=v, color=ozone), full_data %>%
                drop_na(ozone), size = 0.2) #Sanity check to see the data points are in bins
-```
 
-
-```{r}
-grouped_data %>%
-  ggplot() + geom_tile(aes(x = xbin, y = ybin, fill = median_ozone)) + 
-  geom_text(aes(x = xbin, y = ybin, label = n_ozone, size = 1/n_ozone)) #Numbered samples
 data_nw_center = grouped_data %>%
     filter(((-0.5 < xbin & xbin < 2.5 & -1.5 < ybin & ybin < 1.5)) | ((-2.5 < xbin & xbin < 0.5 & 1.5 < ybin & ybin < 4.5)))
 
@@ -183,6 +162,44 @@ t_test_result_q2 = t.test(data_nw_ne$mean_ozone[data_nw_ne$xbin < 0],
 # Print the test result
 t_test_result_q2
 
+
+# Hypothesis test for q3
+  q3data = grouped_data %>%
+    filter(((-2.5 < xbin & xbin < 0.5 & 1.5 < ybin & ybin < 4.5)) | ((-2.5 < xbin & xbin < 0.5 & -4.5 < ybin & ybin < 1.5)))
+q3_testresult = t.test(q3data$mean_ozone[q3data$xbin < 0], 
+                          q3data$mean_ozone[q3data$xbin >= 0], 
+                          alternative = "two.sided")
+q3_testresult
+# Hypothesis test for q4
+  q4data = grouped_data %>%
+    filter(((-2.5 < xbin & xbin < 0.5 & 1.5 < ybin & ybin < 4.5)) | ((-0.5 < xbin & xbin < 2.5 & -4.5 < ybin & ybin < 1.5)))
+q4_testresult = t.test(q4data$mean_ozone[q4data$xbin < 0], 
+                          q4data$mean_ozone[q4data$xbin >= 0], 
+                          alternative = "two.sided")
+q4_testresult
+```
+
+## Discussion
+
+
+
+## References
+
+In the R Markdown file, you may automatically cite other resources by using a caret followed by the reference between square brackets: ^[your reference text] which will place a marker at this location and a footnote at the end of the document.
+
+
+###############################################################
+##Testing ground, cell below will not evaluate when knitting.##
+###############################################################
+
+#TODO
+Keep which graphs?
+```{r}
+grouped_data %>%
+  ggplot() + geom_tile(aes(x = xbin, y = ybin, fill = median_ozone)) + 
+  geom_text(aes(x = xbin, y = ybin, label = n_ozone, size = 1/n_ozone)) #Numbered samples
+
+
 grouped_data %>%
   ggplot() + geom_tile(aes(x = xbin, y = ybin, fill = median_ozone, alpha = n_ozone)) #Visual representation of sample size. Very low ozone counts when wind is calm
 
@@ -202,59 +219,9 @@ full_data %>%
   unique() #Days with favorable wind conditions
 ```
 
-
-```{r, eval=FALSE}
-full_data %>%
-  ggplot(aes(x = day, y = u)) + geom_point() + facet_grid(vars(month), vars(year), scales = "free") + scale_color_viridis_c(direction = -1)
-
-
-full_data %>%
-  filter(month == "Aug" & day <= 7) %>%
-  ggplot(aes(x = hour, y = solar, color = wday)) + geom_smooth() + geom_point() + facet_grid(vars(year), scales = "free") + scale_color_viridis_d(direction = -1, option = "D")
-
-
-full_data %>%
-  #filter(source == "water") %>%
-  ggplot(aes(x = timestamp, y = u)) + geom_point(alpha = 0.5, size = 0.1)
-```
-
-
-```{r}
-full_data %>%
-  filter(month == "Jun" & year == "2021") %>%
-  ggplot(aes(x = timestamp, y = u, color = ozone)) + geom_point()
-```
-
 ```{r}
 full_data %>%
   #filter(u < 0) %>%
   filter(year == 2021, month == "Jun", day == 3) %>%
   ggplot(.) + geom_point(aes(x = hour, y = atemp, color = ozone)) + geom_text(aes(x = hour, y = atemp-.5, angle = -wdir, color = ozone, size = wspeed), label = "↓")
 ```
-
-```{r}
-full_data %>%
-  group_by(wday, high_wind) %>%
-  drop_na(ozone) %>%
-  summarise(mean_ozone = mean(ozone))
-```
-
-```{r}
-full_data %>%
-  arrange(desc(wspeed), timestamp) %>%
-  drop_na(ozone) %>%
-  ggplot(aes(x=wdir, y=wspeed, color=ozone)) + geom_point()
-
-x = full_data %>%
-  filter(wdir > 140, wdir < 200) %>%
-  select(ozone) %>%
-  drop_na()
-
-y = full_data %>%
-  filter(wdir > 250, wdir < 310) %>%
-  select(ozone) %>%
-  drop_na()
-
-t.test(x, y)
-```
-
