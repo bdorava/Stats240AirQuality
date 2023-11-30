@@ -82,24 +82,23 @@ full_data = read_excel("data/2021Chiwaukee.xls", skip=2) %>%
          minute = minute(timestamp)) %>% 
   mutate(u = round(-wspeed * sin(wdir*2*pi/360), 2),
          v = round(-wspeed * cos(wdir*2*pi/360), 2)) %>% #Determine components of 2-D flow, from wdir
-  drop_na(wspeed, wdir) %>% #Drop rows with missing data
+  drop_na(wspeed, wdir, ozone) %>% #Drop rows with missing data
   mutate(xbin = round(u),
          ybin = round(v)) #Add bins to generalize flow
 ```
 
 ```{r TODO, include=FALSE}
 grouped_data = full_data %>%
-  drop_na(ozone) %>%
   group_by(xbin, ybin) %>%
   summarise(mean_ozone = mean(ozone),
             median_ozone = median(ozone),
             sd_ozone = sd(ozone),
-            n_ozone = n())
+            n_ozone = n()) %>%
+  filter(n_ozone >= 30)
 ```
 
 ```{r initialize_plots, include=FALSE}
 ozone_plot = full_data %>%
-  drop_na(ozone) %>%
   ggplot() +
   geom_point(aes(x=u, y=v, color=ozone)) +
   labs(title = "Figure 1",
@@ -109,14 +108,16 @@ ozone_plot = full_data %>%
        y = TeX("Meridional Component of Velocity (${ms}^{-1}$)"))
 
 mean_ozone_plot = grouped_data %>% #Mean Ozone, Numbered Samples
-  ggplot() + geom_tile(aes(x = xbin, y = ybin, fill = mean_ozone)) + 
-  geom_text(aes(x = xbin, y = ybin, label = n_ozone, size = 1/n_ozone)) +
+  ggplot() +
+  geom_point(aes(x=u, y=v, color=ozone), data = full_data) +
+  geom_tile(aes(x = xbin, y = ybin, fill = mean_ozone)) +
+  #geom_text(aes(x = xbin, y = ybin, label = n_ozone, size = 1/n_ozone)) +
   labs(title = "Figure 2",
-       subtitle = "Mean Ozone Concentration Within 1m/s Bins\nWith Respect to Wind Velocity Components\n(Numbers Indicate Sample Size Within Each Bin)",
+       subtitle = "Mean Ozone Concentration Within 1m/s Bins\nWith Respect to Wind Velocity Components",
        fill = "Ozone Concentration\nMean (ppb)",
        x = TeX("Zonal Component of Velocity (${ms}^{-1}$)"),
        y = TeX("Meridional Component of Velocity (${ms}^{-1}$)")) +
-  guides(size=F) +
+  guides(color=F) +
   geom_rect(xmin = -0.5,
             xmax = 2.5,
             ymin = -1.5,
@@ -154,9 +155,9 @@ mean_ozone_plot = grouped_data %>% #Mean Ozone, Numbered Samples
 
 sd_ozone_plot = grouped_data %>% #SD Ozone, Numbered Samples
   ggplot() + geom_tile(aes(x = xbin, y = ybin, fill = sd_ozone)) + 
-  geom_text(aes(x = xbin, y = ybin, label = n_ozone, size = 1/n_ozone)) +
+  #geom_text(aes(x = xbin, y = ybin, label = n_ozone, size = 1/n_ozone)) +
   labs(title = "Figure 3",
-       subtitle = "Standard Deviation of Ozone Concentrations Within 1m/s Bins\nWith Respect to Wind Velocity Components\n(Numbers Indicate Sample Size Within Each Bin)",
+       subtitle = "Standard Deviation of Ozone Concentrations Within 1m/s Bins\nWith Respect to Wind Velocity Components",
        fill = "Ozone Concentration\nStandard Deviation (ppb)",
        x = TeX("Zonal Component of Velocity (${ms}^{-1}$)"),
        y = TeX("Meridional Component of Velocity ${ms}^{-1}$")) +
@@ -202,7 +203,7 @@ One source of air pollutants—such as ozone and its precursors—is automobiles
 
 The Wisconsin Department of Natural Resources maintains several air quality monitoring sites across the state. The data set we analyze consists of two consecutive years of seasonally reported ozone concentrations and meteorological conditions measured by the Chiwaukee Prairie Stateline station (AQS: 55-059-0019).
 
-This station records ozone concentrations  during March through October, and data was available for 2021–2022.^[https://wi-dnr.widencollective.com/portals/iwvftorq/iwvftorq/AirMonitoringData/c/feee5d04-93b9-4362-9e34-6e8ff5249c5a] The station is located less than 1,000 feet from the shore of Lake Michigan in Pleasant Prairie, Kenosha, which is roughly 40 miles north of Chicago.^[https://dnr.wisconsin.gov/sites/default/files/topic/AirQuality/Draft2024AnnualNetworkPlan.pdf]
+This station records hourly ozone concentrations during March through October, and data was available for 2021–2022.^[https://wi-dnr.widencollective.com/portals/iwvftorq/iwvftorq/AirMonitoringData/c/feee5d04-93b9-4362-9e34-6e8ff5249c5a] The station is located less than 1,000 feet from the shore of Lake Michigan in Pleasant Prairie, Kenosha, which is roughly 40 miles north of Chicago.^[https://dnr.wisconsin.gov/sites/default/files/topic/AirQuality/Draft2024AnnualNetworkPlan.pdf]
 
 We are interested in 3 variables: zonal and meridional components of flow, and ozone concentration. The zonal (meridional) component of flow, conventionally written as $u$ ($v$) refers to the magnitude of the wind vector in the $\hat{i}$ ($\hat{j}$) direction; in other words, the portion of the wind blowing purely in the direction of west-to-east (south-to-north). These components of flow are determined trigonometrically from the reported wind speed and direction, and are in units of ${ms}^{-1}$. Ozone concentration is reported in units of parts per billion ($ppb$).
 
@@ -216,7 +217,7 @@ ozone_plot
 
 In order to determine local statistics across the continuous data set, values were binned by rounding to the nearest whole ${ms}^{-1}$.
 
-This caused outliers to become more visually apparent, so sample sizes were included to prevent hasty conclusions.
+Bins with fewer than 30 members are not included, while outliers remain visible.
 
 We have included annotations for the five regions we will compare:
 
@@ -230,13 +231,9 @@ We have included annotations for the five regions we will compare:
 mean_ozone_plot
 ```
 
-Perhaps most apparently, the region nearest the origin has the lowest mean ozone concentration.
+Perhaps most apparently, the region of calm wind has the lowest mean ozone concentration. This would suggest that at this site, ozone concentration is positively correlated with wind speed.
 
-The top left region bounded by 
-
-```{r display_sd_ozone_plot, echo=FALSE}
-sd_ozone_plot
-```
+The Top-Left region appears to have a highest mean concentration. This would suggest that at this site, ozone concentration is positively correlated with wind blowing towards the north-west.
 
 ```{r}
 data_nw_center = grouped_data %>% #TODO Change to full data
@@ -290,5 +287,10 @@ This is an example of lake breeze, characterized by drop in land temperature, sh
 breeze_example_plot
 ```
 
+
+
+```{r display_sd_ozone_plot, echo=FALSE}
+sd_ozone_plot
+```
 
 ## References
