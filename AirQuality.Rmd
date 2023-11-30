@@ -104,18 +104,29 @@ ozone_plot = full_data %>%
   geom_point(aes(x=u, y=v, color=ozone)) +
   labs(title = "Figure 1",
        subtitle = "Ozone Concentration With Respect to Wind Velocity Components",
-       color = TeX("Ozone Concentration ($ppb$)"),
+       color = "Ozone Concentration (ppb)",
        x = TeX("Zonal Component of Velocity (${ms}^{-1}$)"),
-       y = TeX("Meridional Component of Velocity ${ms}^{-1}$"))
+       y = TeX("Meridional Component of Velocity (${ms}^{-1}$)"))
 
-mean_ozone_plot = grouped_data %>%
+mean_ozone_plot = grouped_data %>% #Mean Ozone, Numbered Samples
   ggplot() + geom_tile(aes(x = xbin, y = ybin, fill = mean_ozone)) + 
-  geom_text(aes(x = xbin, y = ybin, label = n_ozone, size = 1/n_ozone)) #Mean Ozone, Numbered Samples
+  geom_text(aes(x = xbin, y = ybin, label = n_ozone, size = 1/n_ozone)) +
+  labs(title = "Figure 2",
+       subtitle = "Mean Ozone Concentration Within 1m/s Bins\nWith Respect to Wind Velocity Components\n(Numbers Indicate Sample Size Within Each Bin)",
+       fill = "Ozone Concentration\nMean (ppb)",
+       x = TeX("Zonal Component of Velocity (${ms}^{-1}$)"),
+       y = TeX("Meridional Component of Velocity (${ms}^{-1}$)")) +
+  guides(size=F)
 
-
-sd_ozone_plot = grouped_data %>%
+sd_ozone_plot = grouped_data %>% #SD Ozone, Numbered Samples
   ggplot() + geom_tile(aes(x = xbin, y = ybin, fill = sd_ozone)) + 
-  geom_text(aes(x = xbin, y = ybin, label = n_ozone, size = 1/n_ozone)) #SD Ozone, Numbered Samples
+  geom_text(aes(x = xbin, y = ybin, label = n_ozone, size = 1/n_ozone)) +
+  labs(title = "Figure 3",
+       subtitle = "Standard Deviation of Ozone Concentrations Within 1m/s Bins\nWith Respect to Wind Velocity Components\n(Numbers Indicate Sample Size Within Each Bin)",
+       fill = "Ozone Concentration\nStandard Deviation (ppb)",
+       x = TeX("Zonal Component of Velocity (${ms}^{-1}$)"),
+       y = TeX("Meridional Component of Velocity ${ms}^{-1}$")) +
+  guides(size=F)
 
 
 breeze_example_year = 2022
@@ -127,7 +138,7 @@ breeze_example = full_data %>%
          month == breeze_example_month,
          day == breeze_example_day)
 
-breeze_example_plot = ggplot() +
+breeze_example_plot = ggplot() + #Lake Breeze Example
   geom_point(aes(x = timestamp, y = atemp, color = ozone),
              breeze_example,
              shape = "square") +
@@ -135,7 +146,7 @@ breeze_example_plot = ggplot() +
             breeze_example,
             label = "↓",
             color = "red",
-            check_overlap = T) #Lake Breeze Example
+            check_overlap = T)
 ```
 ## Introduction
 
