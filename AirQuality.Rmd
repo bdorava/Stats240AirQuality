@@ -87,7 +87,7 @@ full_data = read_excel("data/2021Chiwaukee.xls", skip=2) %>%
          ybin = round(v)) #Add bins to generalize flow
 ```
 
-```{r TODO, include=FALSE}
+```{r initialize_analysis, include=FALSE}
 grouped_data = full_data %>%
   group_by(xbin, ybin) %>%
   summarise(mean_ozone = mean(ozone),
@@ -129,39 +129,37 @@ mean_ozone_plot = grouped_data %>% #Mean Ozone, Numbered Samples
             ymin = 1.5,
             ymax = 4.5,
             color = "red",
-            alpha = 0,
-            linetype = "dotted") +
-  geom_rect(xmin = -0.5,
-            xmax = 2.5,
+            alpha = 0) +
+  geom_rect(xmin = 1.5,
+            xmax = 4.5,
             ymin = 1.5,
             ymax = 4.5,
             color = "red",
-            alpha = 0,
-            linetype = "dashed") +
+            alpha = 0) +
   geom_rect(xmin = -2.5,
             xmax = 0.5,
-            ymin = -1.5,
-            ymax = -4.5,
+            ymin = -4.5,
+            ymax = -1.5,
             color = "red",
-            alpha = 0,
-            linetype = "dotted") +
-  geom_rect(xmin = -0.5,
-            xmax = 2.5,
-            ymin = -1.5,
-            ymax = -4.5,
+            alpha = 0) +
+  geom_rect(xmin = 1.5,
+            xmax = 4.5,
+            ymin = -4.5,
+            ymax = -1.5,
             color = "red",
-            alpha = 0,
-            linetype = "dashed")
+            alpha = 0)
 
 sd_ozone_plot = grouped_data %>% #SD Ozone, Numbered Samples
-  ggplot() + geom_tile(aes(x = xbin, y = ybin, fill = sd_ozone)) + 
+  ggplot() +
+  geom_point(aes(x=u, y=v, color=ozone), data = full_data) +
+  geom_tile(aes(x = xbin, y = ybin, fill = sd_ozone)) + 
   #geom_text(aes(x = xbin, y = ybin, label = n_ozone, size = 1/n_ozone)) +
-  labs(title = "Figure 3",
+  labs(title = "Figure 4",
        subtitle = "Standard Deviation of Ozone Concentrations Within 1m/s Bins\nWith Respect to Wind Velocity Components",
        fill = "Ozone Concentration\nStandard Deviation (ppb)",
        x = TeX("Zonal Component of Velocity (${ms}^{-1}$)"),
        y = TeX("Meridional Component of Velocity ${ms}^{-1}$")) +
-  guides(size=F)
+  guides(color=F)
 
 
 breeze_example_year = 2022
@@ -182,7 +180,7 @@ breeze_example_plot = ggplot() + #Lake Breeze Example
             label = "↓",
             color = "red",
             check_overlap = T) +
-  labs(title = "Figure 4",
+  labs(title = "Figure 3",
        subtitle = "(Arrows Indicate Direction and Relative Magnitude of Wind)",
        color = "Ozone Concentration (ppb)",
        x = "Time",
@@ -235,7 +233,66 @@ Perhaps most apparently, the region of calm wind has the lowest mean ozone conce
 
 The Top-Left region appears to have a highest mean concentration. This would suggest that at this site, ozone concentration is positively correlated with wind blowing towards the north-west.
 
-```{r}
+##TODO: Add text for hypothesis testing analysis
+
+```{r, echo=FALSE, eval=FALSE}
+xmin = -0.5
+xmax = 2.5
+ymin = -1.5
+ymax = 1.5
+center = full_data %>%
+  filter(xbin >= xmin,
+         xbin <= xmax,
+         ybin >= ymin,
+         ybin <= ymax)
+
+xmin = -2.5
+xmax = 0.5
+ymin = 1.5
+ymax = 4.5
+nw = full_data %>%
+  filter(xbin >= xmin,
+         xbin <= xmax,
+         ybin >= ymin,
+         ybin <= ymax)
+  
+xmin = 1.5
+xmax = 4.5
+ymin = 1.5
+ymax = 4.5
+ne = full_data %>%
+  filter(xbin >= xmin,
+         xbin <= xmax,
+         ybin >= ymin,
+         ybin <= ymax)
+
+xmin = -2.5
+xmax = 0.5
+ymin = -4.5
+ymax = -1.5
+sw = full_data %>%
+  filter(xbin >= xmin,
+         xbin <= xmax,
+         ybin >= ymin,
+         ybin <= ymax)
+
+xmin = 1.5
+xmax = 4.5
+ymin = -4.5
+ymax = -1.5
+se = full_data %>%
+  filter(xbin >= xmin,
+         xbin <= xmax,
+         ybin >= ymin,
+         ybin <= ymax)
+
+t.test(center$ozone, nw$ozone)
+t.test(nw$ozone, ne$ozone)
+t.test(nw$ozone, sw$ozone)
+t.test(nw$ozone, se$ozone)
+```
+
+```{r, echo=FALSE}
 data_nw_center = grouped_data %>% #TODO Change to full data
     filter(((-0.5 < xbin & xbin < 2.5 & -1.5 < ybin & ybin < 1.5)) | ((-2.5 < xbin & xbin < 0.5 & 1.5 < ybin & ybin < 4.5)))
 
@@ -285,11 +342,22 @@ n summary, the statistical tests support the alternate hypothesis, suggesting th
 
 ## Discussion
 
-This is an example of lake breeze, characterized by drop in land temperature, shifting wind direction, increased ozone levels.
+##TODO: Continue analysis into discussion, broader interpretation of analysis, summary of conclusions
+
+Below is an example of lake breeze from this data set, characterized by drop in land temperature, shifting wind direction, increased ozone levels.
 
 ```{r display_breeze_example_plot, echo=FALSE}
 breeze_example_plot
 ```
 
+These lake breeze events are sporadic, which means that the wind may blow north-west even in the absence of a lake breeze. In these cases, considerably lower values of ozone concentration would be recorded than during lake breeze events. This is to say that if these increased levels of ozone are caused by lake breeze events, we would expect a notable variance between ozone concentrations. This is supported when we plot standard deviation against components of the wind vector.
+
+```{r display_sd_ozone_plot, echo=FALSE}
+sd_ozone_plot
+```
+
+As predicted, we see a larger standard deviation in the ozone concentrations carried by north-westward winds.
+
+Further research could include an investigation into the meteorological conditions preceding a lake-breeze event, such as difference in air temperature above land and above water. 
 
 ## References
