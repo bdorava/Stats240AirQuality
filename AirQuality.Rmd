@@ -208,13 +208,31 @@ We are interested in 3 variables: zonal and meridional components of flow, and o
 
 ## Analysis
 
+The first graphical summary of the data was simply of ozone concentrations plotted against components of wind velocity. Because the points are plotted against the velocity vector, each point can be thought of as the head of the wind vector, whose tail is the origin.
+
 ```{r display_ozone_plot, echo=FALSE}
 ozone_plot
 ```
 
+In order to determine local statistics across the continuous data set, values were binned by rounding to the nearest whole ${ms}^{-1}$.
+
+This caused outliers to become more visually apparent, so sample sizes were included to prevent hasty conclusions.
+
+We have included annotations for the five regions we will compare:
+
+- Gold: Calm wind, slightly skewed Eastward to account for prevailing wind
+- Top-Left: North-westward wind
+- Top-Right: North-eastward wind
+- Bottom-Left: South-westward wind
+- Bottom-Right: South-eastward wind
+
 ```{r display_mean_ozone_plot, echo=FALSE}
 mean_ozone_plot
 ```
+
+Perhaps most apparently, the region nearest the origin has the lowest mean ozone concentration.
+
+The top left region bounded by 
 
 ```{r display_sd_ozone_plot, echo=FALSE}
 sd_ozone_plot
