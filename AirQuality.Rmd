@@ -282,6 +282,10 @@ q4_testresult = t.test(q4data$mean_ozone[q4data$xbin < 0],
 q4_testresult
 ```
 
+For each pair of adjacent quadrants, we conducted Welch's t-tests to evaluate whether there is a significant difference in mean ozone concentrations. The results of these tests are as follows:
+
+n summary, the statistical tests support the alternate hypothesis, suggesting that there are significant differences in mean ozone concentrations between different wind velocity components. This finding reinforces the observed patterns in Figure 2, highlighting the influence of wind direction on ozone levels.
+
 ## Discussion
 
 This is an example of lake breeze, characterized by drop in land temperature, shifting wind direction, increased ozone levels.
