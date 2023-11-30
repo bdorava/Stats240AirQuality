@@ -12,6 +12,7 @@ library(tidyverse)
 library(lubridate)
 library(viridisLite)
 library(kableExtra)
+library(latex2exp)
 source("scripts/viridis.R")
 source("scripts/ggprob.R")
 ```
@@ -99,7 +100,13 @@ grouped_data = full_data %>%
 ```{r initialize_plots, include=FALSE}
 ozone_plot = full_data %>%
   drop_na(ozone) %>%
-  ggplot() + geom_point(aes(x=u, y=v, color=ozone))
+  ggplot() +
+  geom_point(aes(x=u, y=v, color=ozone)) +
+  labs(title = "Figure 1",
+       subtitle = "Ozone Concentration With Respect to Wind Velocity Components",
+       color = TeX("Ozone Concentration ($ppb$)"),
+       x = TeX("Zonal Component of Velocity (${ms}^{-1}$)"),
+       y = TeX("Meridional Component of Velocity ${ms}^{-1}$"))
 
 mean_ozone_plot = grouped_data %>%
   ggplot() + geom_tile(aes(x = xbin, y = ybin, fill = mean_ozone)) + 
@@ -142,12 +149,17 @@ We are interested in 3 variables: zonal and meridional components of flow, and o
 
 ## Analysis
 
-```{r display_plots, echo=FALSE}
+```{r display_ozone_plot, echo=FALSE}
 ozone_plot
-mean_ozone_plot
-sd_ozone_plot
 ```
 
+```{r display_mean_ozone_plot, echo=FALSE}
+mean_ozone_plot
+```
+
+```{r display_sd_ozone_plot, echo=FALSE}
+sd_ozone_plot
+```
 
 ```{r}
 data_nw_center = grouped_data %>% #TODO Change to full data
@@ -196,10 +208,10 @@ q4_testresult
 ## Discussion
 
 This is an example of lake breeze, characterized by drop in land temperature, shifting wind direction, increased ozone levels.
-```{r}
+
+```{r display_breeze_example_plot, echo=FALSE}
 breeze_example_plot
 ```
-
 
 
 ## References
