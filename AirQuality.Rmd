@@ -191,7 +191,7 @@ breeze_example_plot = ggplot() + #Lake Breeze Example
 
 Air pollution has detrimental impacts on community health, especially for vulnerable populations. Some of these impacts can be mitigated by issuing air quality advisories, which are informed by predictions of atmospheric flow.
 
-We are interested in analyzing air quality monitoring data from a fixed location 40 miles north of downtown Chicago, and seek to investigate possible correlations between wind velocity and ozone concentrations.
+High ozone concentrations resulting from specific wind patterns can exacerbate air pollution, contributing to respiratory issues and cardiovascular problems among residents. This study delves into the correlation between wind velocity and ozone levels by analyzing air quality monitoring data from a fixed location 40 miles north of downtown Chicago, and seeking to investigate possible correlations between wind velocity and ozone concentrations.
 
 From our analysis comparing mean ozone concentrations between samples of similar wind velocity, we find that there is a positive correlation between north-westward blowing wind and ozone concentration.
 
@@ -229,13 +229,21 @@ We have included annotations for the five regions we will compare:
 mean_ozone_plot
 ```
 
+Observation and Initial Hypotheses
+Upon visual inspection, the region with calm winds (Gold) appears to have the lowest mean ozone concentration. Conversely, the Top-Left region, representing north-westward winds, shows the highest mean concentration. This initial observation suggests a potential correlation between wind direction and ozone levels.
+
+Hypotheses:
+
+Null Hypothesis ($H_0$): There is no significant difference in mean ozone concentrations between different wind velocity components.
+
+Alternate Hypothesis ($H_a$): There is a significant difference in mean ozone concentrations between at least one pair of wind velocity components.
+
 Perhaps most apparently, the region of calm wind has the lowest mean ozone concentration. This would suggest that at this site, ozone concentration is positively correlated with wind speed.
 
 The Top-Left region appears to have a highest mean concentration. This would suggest that at this site, ozone concentration is positively correlated with wind blowing towards the north-west.
 
-##TODO: Add text for hypothesis testing analysis
 
-```{r, echo=FALSE, eval=FALSE}
+```{r, echo=FALSE , include=FALSE}
 xmin = -0.5
 xmax = 2.5
 ymin = -1.5
@@ -292,57 +300,45 @@ t.test(nw$ozone, sw$ozone)
 t.test(nw$ozone, se$ozone)
 ```
 
-```{r, echo=FALSE}
-data_nw_center = grouped_data %>% #TODO Change to full data
-    filter(((-0.5 < xbin & xbin < 2.5 & -1.5 < ybin & ybin < 1.5)) | ((-2.5 < xbin & xbin < 0.5 & 1.5 < ybin & ybin < 4.5)))
-
-
-# Perform Welch's t-test
-t_test_result_q1 = t.test(data_nw_center$mean_ozone[data_nw_center$xbin < 0], 
-                          data_nw_center$mean_ozone[data_nw_center$xbin >= 0], 
-                          alternative = "two.sided", 
-                          var.equal = FALSE)
-
-# Print the test result
-t_test_result_q1
-
-# Filter data for the northeast and center bins
-data_nw_ne = grouped_data %>%
-  filter(((-0.5 < xbin & xbin < 2.5 & 1.5 < ybin & ybin < 4.5)) | ((-2.5 < xbin & xbin < 0.5 & 1.5 < ybin & ybin < 4.5)))
-
-# Perform Welch's t-test
-t_test_result_q2 = t.test(data_nw_ne$mean_ozone[data_nw_ne$xbin < 0], 
-                          data_nw_ne$mean_ozone[data_nw_ne$xbin >= 0], 
-                          alternative = "two.sided", 
-                          var.equal = FALSE)
-
-# Print the test result
-t_test_result_q2
-
-
-# Hypothesis test for q3
-  q3data = grouped_data %>%
-    filter(((-2.5 < xbin & xbin < 0.5 & 1.5 < ybin & ybin < 4.5)) | ((-2.5 < xbin & xbin < 0.5 & -4.5 < ybin & ybin < 1.5)))
-q3_testresult = t.test(q3data$mean_ozone[q3data$xbin < 0], 
-                          q3data$mean_ozone[q3data$xbin >= 0], 
-                          alternative = "two.sided")
-q3_testresult
-# Hypothesis test for q4
-  q4data = grouped_data %>%
-    filter(((-2.5 < xbin & xbin < 0.5 & 1.5 < ybin & ybin < 4.5)) | ((-0.5 < xbin & xbin < 2.5 & -4.5 < ybin & ybin < 1.5)))
-q4_testresult = t.test(q4data$mean_ozone[q4data$xbin < 0], 
-                          q4data$mean_ozone[q4data$xbin >= 0], 
-                          alternative = "two.sided")
-q4_testresult
-```
-
 For each pair of adjacent quadrants, we conducted Welch's t-tests to evaluate whether there is a significant difference in mean ozone concentrations. The results of these tests are as follows:
 
-n summary, the statistical tests support the alternate hypothesis, suggesting that there are significant differences in mean ozone concentrations between different wind velocity components. This finding reinforces the observed patterns in Figure 2, highlighting the influence of wind direction on ozone levels.
+```{r, echo=FALSE}
+# Conducting Welch's t-tests using full_data and specific subsets
+
+# Center vs. North-westward (Q1)
+t_test_result_q1 = t.test(nw$ozone, center$ozone, alternative = "two.sided", var.equal = FALSE)
+
+# North-westward vs. North-eastward (Q2)
+t_test_result_q2 = t.test(nw$ozone, ne$ozone, alternative = "two.sided", var.equal = FALSE)
+
+# North-westward vs. South-westward (Q3)
+t_test_result_q3 = t.test(nw$ozone, sw$ozone, alternative = "two.sided", var.equal = FALSE)
+
+# North-westward vs. South-eastward (Q4)
+t_test_result_q4 = t.test(nw$ozone, se$ozone, alternative = "two.sided", var.equal = FALSE)
+
+
+
+p_value_q1 = format.pval(t_test_result_q1$p.value, digits = 5)
+p_value_q2 = format.pval(t_test_result_q2$p.value, digits = 5)
+p_value_q3 = format.pval(t_test_result_q3$p.value, digits = 5)
+p_value_q4 = format.pval(t_test_result_q4$p.value, digits = 5)
+
+# Print the p-values
+print(p_value_q1)
+print(p_value_q2)
+print(p_value_q3)
+print(p_value_q4)
+```
+
+
+In summary, since the p values are very small (less than 2.2^10-16), the statistical tests support the alternate hypothesis, suggesting that there are significant differences in mean ozone concentrations between different wind velocity components. This finding reinforces the observed patterns in Figure 2, highlighting the influence of wind direction on ozone levels.
 
 ## Discussion
 
-##TODO: Continue analysis into discussion, broader interpretation of analysis, summary of conclusions
+The analysis suggests a correlation between wind direction and ozone levels, with distinct patterns observed in different quadrants.
+
+The lake breeze example, characterized by temperature drops, shifting wind direction, and increased ozone levels, demonstrates the sporadic nature of these events. The variance in ozone concentrations during north-westward winds aligns with the expectation that lake breeze events correlates to increased ozone levels.
 
 Below is an example of lake breeze from this data set, characterized by drop in land temperature, shifting wind direction, increased ozone levels.
 
