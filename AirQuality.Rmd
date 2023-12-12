@@ -154,11 +154,12 @@ sd_ozone_plot = grouped_data %>% #SD Ozone, Numbered Samples
   geom_point(aes(x=u, y=v, color=ozone), data = full_data) +
   geom_tile(aes(x = xbin, y = ybin, fill = sd_ozone)) + 
   #geom_text(aes(x = xbin, y = ybin, label = n_ozone, size = 1/n_ozone)) +
-  labs(title = "Figure 4",
+  labs(title = "Figure 3",
        subtitle = "Standard Deviation of Ozone Concentrations Within 1m/s Bins\nWith Respect to Wind Velocity Components",
        fill = "Ozone Concentration\nStandard Deviation (ppb)",
        x = TeX("Zonal Component of Velocity (${ms}^{-1}$)"),
        y = TeX("Meridional Component of Velocity ${ms}^{-1}$")) +
+  scale_fill_viridis_c(option = "B") +
   guides(color=F)
 
 
@@ -180,7 +181,7 @@ breeze_example_plot = ggplot() + #Lake Breeze Example
             label = "↓",
             color = "red",
             check_overlap = T) +
-  labs(title = "Figure 3",
+  labs(title = "Figure 4",
        subtitle = "(Arrows Indicate Direction and Relative Magnitude of Wind)",
        color = "Ozone Concentration (ppb)",
        x = "Time",
@@ -338,22 +339,26 @@ In summary, since the p values are very small (less than 2.2^10-16), the statist
 
 The analysis suggests a correlation between wind direction and ozone levels, with distinct patterns observed in different quadrants.
 
-The lake breeze example, characterized by temperature drops, shifting wind direction, and increased ozone levels, demonstrates the sporadic nature of these events. The variance in ozone concentrations during north-westward winds aligns with the expectation that lake breeze events correlates to increased ozone levels.
-
-Below is an example of lake breeze from this data set, characterized by drop in land temperature, shifting wind direction, increased ozone levels.
-
-```{r display_breeze_example_plot, echo=FALSE}
-breeze_example_plot
-```
-
-These lake breeze events are sporadic, which means that the wind may blow north-west even in the absence of a lake breeze. In these cases, considerably lower values of ozone concentration would be recorded than during lake breeze events. This is to say that if these increased levels of ozone are caused by lake breeze events, we would expect a notable variance between ozone concentrations. This is supported when we plot standard deviation against components of the wind vector.
+To investigate the broader relationships of our data, examining the standard deviation of ozone concentrations across different flows may give us a few clues. In the same region of increased mean concentration, we see a larger standard deviation in the ozone concentrations carried by north-westward winds.
 
 ```{r display_sd_ozone_plot, echo=FALSE}
 sd_ozone_plot
 ```
 
-As predicted, we see a larger standard deviation in the ozone concentrations carried by north-westward winds.
+One possible physical explanation of this behavior is lake breeze. Lake breezes are an occasional coastward breeze marked by shifting winds and decreasing temperatures, and were the focus of researchers such as Wagner et al. (2022) during the 2017 Lake Michigan Ozone Study. Lake breeze events are sporadic, meaning that the wind may blow north-west even in the absence of a lake breeze. In these cases, considerably lower values of ozone concentration would be recorded than during lake breeze events. This is to say that if these increased levels of ozone are caused by these periodic and discrete lake breeze events, we would expect a notable variance between ozone concentrations. This is what we observe in **Figure 3**.
+
+**Figure 4** shows a time series of a lake breeze event which occurred on 19 May 2022. Noting its temperature drops, shifting wind direction, and increased ozone levels, this example demonstrates the sporadic nature of these events. The variance in ozone concentrations during north-westward winds aligns with the expectation that a lake breeze event will correlates to increased ozone levels.
+
+```{r display_breeze_example_plot, echo=FALSE}
+breeze_example_plot
+```
 
 Further research could include an investigation into the meteorological conditions preceding a lake-breeze event, such as difference in air temperature above land and above water. 
 
 ## References
+
+Wagner T. J., Czarnetzki, A. C., Christiansen, M., Pierce, R. B., Stanier, C. O., Dickens, A. F., & Eloranta, E. W., 2022: Observations of the Development and Vertical Structure of the Lake-Breeze Circulation during the 2017 Lake Michigan Ozone Study. J. Atmos. Sci., 79, 1005–1020, DOI: 10.1175/JAS-D-20-0297.1
+
+Wisconsin Department of Natural Resources, 2023: 2021 Chiwaukee Data. WDNR, accessed 7 November 2023, https://wi-dnr.widencollective.com/portals/iwvftorq/AirMonitoringData
+
+Wisconsin Department of Natural Resources, 2023: 2022 Chiwaukee Data. WDNR, accessed 7 November 2023, https://wi-dnr.widencollective.com/portals/iwvftorq/AirMonitoringData
