@@ -210,11 +210,13 @@ We are interested in 3 variables: zonal and meridional components of flow, and o
 
 The first graphical summary of the data was simply of ozone concentrations plotted against components of wind velocity. Because the points are plotted against the velocity vector, each point can be thought of as the head of the wind vector, whose tail is the origin.
 
+**Figure 1** shows how the Ozone concentration changes with respect to the wind velocity components. It uses each point as the head of a wind vector, from the origin.
+
 ```{r display_ozone_plot, echo=FALSE}
 ozone_plot
 ```
 
-In order to determine local statistics across the continuous data set, values were binned by rounding to the nearest whole ${ms}^{-1}$.
+In the graph, we see the ozone concentration is lower in the origin, where winds would be more calm, are are higher towards to north and west components. However, there are too many individual points to make sense of, so in order to determine local statistics across the continuous data set, values were binned by rounding to the nearest whole ${ms}^{-1}$.
 
 Bins with fewer than 30 members are not included, while outliers remain visible.
 
@@ -225,6 +227,8 @@ We have included annotations for the five regions we will compare:
 - Top-Right: North-eastward wind
 - Bottom-Left: South-westward wind
 - Bottom-Right: South-eastward wind
+
+**Figure 2** shows how the Ozone concentration changes with respect to the wind velocity components. It uses bins by rounding values to the nearest whole ${ms}^{-1}$.
 
 ```{r display_mean_ozone_plot, echo=FALSE}
 mean_ozone_plot
@@ -337,7 +341,7 @@ In summary, since the p values are very small (less than 2.2^10-16), the statist
 
 ## Discussion
 
-The analysis suggests a correlation between wind direction and ozone levels, with distinct patterns observed in different quadrants.
+The analysis reveals a compelling correlation between wind direction and ozone levels, showcasing distinctive patterns across different quadrants. Thus, our hypothesis tests strongly suggest that the mean ozone levels are different in different across different regions, with the north-west region having the largest mean concentration of ozone. This suggests that ozone is being advected (transported) from the south-east (from Chicago). This is what we would expect, given that ozone is generally produced in urban areas.
 
 To investigate the broader relationships of our data, examining the standard deviation of ozone concentrations across different flows may give us a few clues. In the same region of increased mean concentration, we see a larger standard deviation in the ozone concentrations carried by north-westward winds.
 
